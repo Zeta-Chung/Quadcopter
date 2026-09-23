@@ -1,0 +1,161 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 PRESERVE8
+    2 00000000                 THUMB
+    3 00000000         
+    4 00000000 20018000 
+                       StackTop
+                               EQU              0x20018000
+    5 00000000         
+    6 00000000                 AREA             RESET, DATA, READONLY
+    7 00000000         __Vectors
+    8 00000000 20018000        DCD              StackTop
+    9 00000004 00000000        DCD              Reset_Handler
+   10 00000008         
+   11 00000008                 AREA             MAIN, CODE, READONLY
+   12 00000000                 EXPORT           Reset_Handler
+   13 00000000                 EXPORT           LOOP
+   14 00000000         
+   15 00000000                 ENTRY
+   16 00000000         
+   17 00000000         Reset_Handler
+                               PROC
+   18 00000000         ;使能AHB1时钟的GPIOA位
+   19 00000000 480C            LDR              R0, = 0x40023800
+   20 00000002 F04F 0101       LDR              R1, = 0x01
+   21 00000006 6301            STR              R1, [R0, #0x30]
+   22 00000008         
+   23 00000008         ;配置GPIOA为推挽输出
+   24 00000008 480B            LDR              R0, = 0x40020000
+   25 0000000A 6801            LDR              R1, [R0]
+   26 0000000C F421 6140       BIC              R1, R1, #(0x03<<10)
+   27 00000010 F441 6180       ORR              R1, R1, #(0x01<<10)
+   28 00000014 6001            STR              R1, [R0]
+   29 00000016         ;向PA5写入高电平
+   30 00000016         
+   31 00000016                 ENDP
+   32 00000016         
+   33 00000016         LOOP
+   34 00000016 F04F 0120       LDR              R1, = (0x01<<5)
+   35 0000001A 6181            STR              R1, [R0, #0x18]
+   36 0000001C         
+   37 0000001C F44F 1280       LDR              R2, = 0x100000
+   38 00000020         Delay1
+   39 00000020 1E52            SUBS             R2, R2, #0x01
+   40 00000022 D1FD            BNE              Delay1
+   41 00000024         
+   42 00000024 F44F 1100       LDR              R1, =(0x01<<(5+16))
+   43 00000028 6181            STR              R1, [R0, #0x18]
+   44 0000002A         
+   45 0000002A F44F 1280       LDR              R2, = 0x100000
+   46 0000002E         Delay2
+   47 0000002E 1E52            SUBS             R2, R2, #0x01
+   48 00000030 D1FD            BNE              Delay2
+   49 00000032         
+   50 00000032 E7FE            B                LOOP
+   51 00000034         
+   52 00000034                 END
+              40023800 
+              40020000 
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp.sp --apcs=
+interwork --depend=.\objects\main.d -o.\objects\main.o --predefine="__MICROLIB 
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+SETA 1" --predefine="__UVISION_VERSION SETA 540" --predefine="STM32F401xE SETA 
+1" --list=.\listings\main.lst main.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+RESET 00000000
+
+Symbol: RESET
+   Definitions
+      At line 6 in file main.s
+   Uses
+      None
+Comment: RESET unused
+__Vectors 00000000
+
+Symbol: __Vectors
+   Definitions
+      At line 7 in file main.s
+   Uses
+      None
+Comment: __Vectors unused
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+Delay1 00000020
+
+Symbol: Delay1
+   Definitions
+      At line 38 in file main.s
+   Uses
+      At line 40 in file main.s
+Comment: Delay1 used once
+Delay2 0000002E
+
+Symbol: Delay2
+   Definitions
+      At line 46 in file main.s
+   Uses
+      At line 48 in file main.s
+Comment: Delay2 used once
+LOOP 00000016
+
+Symbol: LOOP
+   Definitions
+      At line 33 in file main.s
+   Uses
+      At line 13 in file main.s
+      At line 50 in file main.s
+
+MAIN 00000000
+
+Symbol: MAIN
+   Definitions
+      At line 11 in file main.s
+   Uses
+      None
+Comment: MAIN unused
+Reset_Handler 00000000
+
+Symbol: Reset_Handler
+   Definitions
+      At line 17 in file main.s
+   Uses
+      At line 9 in file main.s
+      At line 12 in file main.s
+
+5 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+StackTop 20018000
+
+Symbol: StackTop
+   Definitions
+      At line 4 in file main.s
+   Uses
+      At line 8 in file main.s
+Comment: StackTop used once
+1 symbol
+344 symbols in table
