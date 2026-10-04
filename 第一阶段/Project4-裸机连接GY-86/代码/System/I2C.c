@@ -15,10 +15,10 @@ void APP_I2C_Init(I2C_TypeDef *I2Cx){
 		
 		GPIO_InitTypeDef GPIO_InitStruct;
 		GPIO_InitStruct.GPIO_Pin = GPIO_Pin_6|GPIO_Pin_7;
-		GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;                            //设置引脚复用
-		GPIO_InitStruct.GPIO_OType = GPIO_OType_OD;                          //开漏输出
+		GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;                 //设置引脚复用
+		GPIO_InitStruct.GPIO_OType = GPIO_OType_OD;               //开漏输出
 		GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-		GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;                            //内部上拉
+		GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;                 //内部上拉
 		GPIO_Init(GPIOB,&GPIO_InitStruct);
 	}
 	else if(I2Cx == I2C2){
@@ -82,10 +82,10 @@ void APP_I2C_Init(I2C_TypeDef *I2Cx){
 //@retval -2 - 总线忙超时
 //@retval -3 - 发送起始位超时
 //@retval -4 - 发送数据时TXE超时
-//@retval 1  - 寻址失败
-//@retval 2  - 寻址超时
-//@retval 3  - 发送数据时从机NACK
-//@retval 4  - 发送数据超时
+//@retval -5 - 寻址失败
+//@retval -6 - 寻址超时
+//@retval -7 - 发送数据时从机NACK
+//@retval -8 - 发送数据超时
 /***/
 int8_t APP_I2C_SendData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pData, uint16_t Size)
 {
@@ -117,7 +117,7 @@ int8_t APP_I2C_SendData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pData, uint16_
         if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_AF) == SET) {
             I2C_ClearFlag(I2Cx, I2C_FLAG_AF);
             I2C_GenerateSTOP(I2Cx, ENABLE);
-            return 1; 
+            return -5; 
         }
         // 再检查 ADDR（寻址成功）
         if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_ADDR) == SET) {
@@ -127,7 +127,7 @@ int8_t APP_I2C_SendData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pData, uint16_
         }
         if (--timeout == 0) {
             I2C_GenerateSTOP(I2Cx, ENABLE);
-            return 2;  // 地址发送超时
+            return -6;  // 地址发送超时
         }
     }
 	//开始发送数据
@@ -150,7 +150,7 @@ int8_t APP_I2C_SendData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pData, uint16_
             if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_AF) == SET) {
                 I2C_ClearFlag(I2Cx, I2C_FLAG_AF);
                 I2C_GenerateSTOP(I2Cx, ENABLE);
-                return 3;  // 从机 NACK
+                return -7;  // 从机 NACK
             }
             // 检查字节传输完成（TXE=1 且 BTF=1）
             if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_BTF) == SET) {
@@ -158,7 +158,7 @@ int8_t APP_I2C_SendData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pData, uint16_
             }
             if (--timeout == 0) {
                 I2C_GenerateSTOP(I2Cx, ENABLE);
-                return 4;  // 发送超时
+                return -8;  // 发送超时
             }
         }
     } 
@@ -182,6 +182,7 @@ int8_t APP_I2C_SendData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pData, uint16_
 //@retval -4 - 寻址失败
 //@retval -5 - 寻址超时
 //@retval -6 - 接收数据超时
+//@retval -7 - 等待BTF超时
 /***/
 int8_t APP_I2C_ReceiveData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pBuffer, uint16_t Size)
 {
@@ -225,6 +226,22 @@ int8_t APP_I2C_ReceiveData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pBuffer, ui
         }
         // 检查 ADDR（寻址成功）
         if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_ADDR) == SET) {
+            //接收一个字节时，先配置好NACK和STOP，再清除ADDR
+            if(Size == 1){
+                I2C_AcknowledgeConfig(I2Cx,DISABLE);
+                I2C_GenerateSTOP(I2Cx,ENABLE);
+                I2C_ReadRegister(I2Cx, I2C_Register_SR1);
+                I2C_ReadRegister(I2Cx, I2C_Register_SR2);
+            }
+            //接收两个字节时，先配置好NACK再清除ADDR
+            else if(Size == 2){
+                I2C_AcknowledgeConfig(I2Cx,DISABLE);//关闭ACK
+                I2C_NACKPositionConfig(I2Cx,I2C_NACKPosition_Next);
+                I2C_ReadRegister(I2Cx, I2C_Register_SR1);
+                I2C_ReadRegister(I2Cx, I2C_Register_SR2);
+                break;
+            }
+            //其余情况直接清除ADDR
             I2C_ReadRegister(I2Cx, I2C_Register_SR1);
             I2C_ReadRegister(I2Cx, I2C_Register_SR2);
             break;
@@ -236,19 +253,9 @@ int8_t APP_I2C_ReceiveData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pBuffer, ui
     }
 
     //5. 接收数据
-    // 如果只接收 1 个字节，提前关闭 ACK
+    // 只接收1个字节
     if (Size == 1) {
-        I2C_AcknowledgeConfig(I2Cx, DISABLE);
-    }
-
-    for (i = 0; i < Size; i++) {
-        // 如果是最后一个字节，在接收前确保 ACK 已关闭
-        if (i == Size - 1) {
-            I2C_AcknowledgeConfig(I2Cx, DISABLE);
-            I2C_GenerateSTOP(I2Cx, ENABLE);
-        }
-
-        // 等待 RXNE 标志（数据已收到）
+        I2C_GenerateSTOP(I2Cx, ENABLE);//设置停止位
         timeout = 100000;
         while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_RXNE) == RESET) {
             if (--timeout == 0) {
@@ -258,7 +265,87 @@ int8_t APP_I2C_ReceiveData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pBuffer, ui
             }
         }
         // 读取数据（硬件自动清除 RXNE）
-        pBuffer[i] = I2C_ReceiveData(I2Cx);
+        pBuffer[0] = I2C_ReceiveData(I2Cx);
+    }
+
+    //接收2个字节
+    else if(Size == 2)
+    {
+        //等待BTF置位
+        timeout = 100000;
+        while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_BTF) == RESET) {
+            if (--timeout == 0) {
+                I2C_GenerateSTOP(I2Cx, ENABLE);
+                I2C_AcknowledgeConfig(I2Cx, ENABLE);  // 恢复 ACK
+                return -7;  // BTF置位超时
+            }
+        }
+        //设置STOP
+        I2C_GenerateSTOP(I2Cx,ENABLE);
+        //接收数据
+        for(i=0;i<2;i++)
+        {
+            timeout = 100000;
+            while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_RXNE) == RESET) {
+                if (--timeout == 0) {
+                    I2C_GenerateSTOP(I2Cx, ENABLE);
+                    I2C_AcknowledgeConfig(I2Cx, ENABLE); // 恢复 ACK
+                    return -6;  // 接收超时
+                }
+            }
+            // 读取数据（硬件自动清除 RXNE）
+            pBuffer[i] = I2C_ReceiveData(I2Cx);
+        }
+        //恢复NACK的Current
+        I2C_NACKPositionConfig(I2Cx,I2C_NACKPosition_Current);
+    }
+
+    //接收三个及以上字节
+    else
+    {
+        for (i = 0; i < Size-1; i++) {
+            // 倒数第二个字节前关闭ACK，连续读取DR和移位寄存器(转移到DR)中的数据
+            if (i == Size - 2) {
+                //等待BTF置位
+                timeout = 100000;
+                while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_BTF) == RESET) {
+                    if (--timeout == 0) {
+                        I2C_GenerateSTOP(I2Cx, ENABLE);
+                        I2C_AcknowledgeConfig(I2Cx, ENABLE);  // 恢复 ACK
+                        return -7;                            // BTF置位超时
+                    }
+                }
+                //设置NACK
+                I2C_AcknowledgeConfig(I2Cx,DISABLE);
+                I2C_NACKPositionConfig(I2Cx,I2C_NACKPosition_Current);
+                //接收数据
+                for(uint8_t j=i;j<i+2;j++)
+                {
+                    if(j == i+1)
+                        I2C_GenerateSTOP(I2Cx,ENABLE);
+                    timeout = 100000;
+                    while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_RXNE) == RESET) {
+                        if (--timeout == 0) {
+                            I2C_GenerateSTOP(I2Cx, ENABLE);
+                            I2C_AcknowledgeConfig(I2Cx, ENABLE); // 恢复 ACK
+                            I2C_NACKPositionConfig(I2Cx,I2C_NACKPosition_Current);//恢复POS
+                            return -6;  // 接收超时
+                        }
+                    }
+                    pBuffer[j] = I2C_ReceiveData(I2Cx);
+                }
+                break;
+            }
+            timeout = 100000;
+            while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_RXNE) == RESET) {
+                if (--timeout == 0) {
+                    I2C_GenerateSTOP(I2Cx, ENABLE);
+                    I2C_AcknowledgeConfig(I2Cx, ENABLE); // 恢复 ACK
+                    return -6;  // 接收超时
+                }
+            }
+            pBuffer[i] = I2C_ReceiveData(I2Cx);
+        }
     }
     I2C_AcknowledgeConfig(I2Cx, ENABLE);  // 恢复 ACK 供下次使用
     return 0;  // 成功
@@ -277,10 +364,13 @@ int8_t APP_I2C_ReceiveData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pBuffer, ui
 //@retval -4 - 寻址失败
 //@retval -5 - 寻址超时
 //@retval -6 - 接收数据超时
+//@retval -7 - 等待BTF超时
+//@retval -8  - 发送寄存器地址等待超时
+//@retval -9  - 发送寄存器地址NACK
+//@retval -10 - 发送寄存器地址超时
 /***/
 int8_t APP_I2C_ReadReg(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,uint8_t RegAddr,uint8_t *pBuffer, uint16_t Size)
 {
-	uint16_t i;
     uint32_t timeout;
 
     // 1. 参数检查
@@ -329,9 +419,34 @@ int8_t APP_I2C_ReadReg(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,uint8_t RegAddr,uint
             return -5;  // 寻址超时
         }
     }
-	//5. 发送具体寄存器地址
-	I2C_SendData(I2C1,RegAddr);
 	
+	//5. 发送具体寄存器地址
+	timeout = 100000;
+	while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_TXE) == RESET) {
+		if (--timeout == 0) {
+			I2C_GenerateSTOP(I2Cx, ENABLE);
+			return -8;  // TXE 超时
+		}
+	}
+	I2C_SendData(I2Cx,RegAddr);
+	timeout = 100000;
+	while (1) 
+	{
+		// 检查从机是否应答失败
+		if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_AF) == SET) {
+			I2C_ClearFlag(I2Cx, I2C_FLAG_AF);
+			I2C_GenerateSTOP(I2Cx, ENABLE);
+			return -9;  // 从机 NACK
+		}
+		// 检查字节传输完成（TXE=1 且 BTF=1）
+		if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_BTF) == SET) {
+			break;
+		}
+		if (--timeout == 0) {
+			I2C_GenerateSTOP(I2Cx, ENABLE);
+			return -10;  // 发送超时
+		}
+	}
 	//6.重新发送起始位
 	I2C_GenerateSTART(I2Cx, ENABLE);
     timeout = 100000;
@@ -341,7 +456,7 @@ int8_t APP_I2C_ReadReg(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,uint8_t RegAddr,uint
             return -3;  // 起始位超时
         }
     }
-	//6.发送从机地址
+	//7.重新发送从机地址
 	I2C_Send7bitAddress(I2Cx, SlaveAddr << 1, I2C_Direction_Receiver);
 
     // 等待地址发送完成
@@ -355,6 +470,22 @@ int8_t APP_I2C_ReadReg(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,uint8_t RegAddr,uint
         }
         // 检查 ADDR（寻址成功）
         if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_ADDR) == SET) {
+			//接收一个字节时，先配置好NACK和STOP，再清除ADDR
+			if(Size == 1){
+				I2C_AcknowledgeConfig(I2Cx,DISABLE);
+				I2C_GenerateSTOP(I2Cx,ENABLE);
+				I2C_ReadRegister(I2Cx, I2C_Register_SR1);
+				I2C_ReadRegister(I2Cx, I2C_Register_SR2);
+			}
+			//接收两个字节时，先配置好NACK再清除ADDR
+			else if(Size == 2){
+				I2C_AcknowledgeConfig(I2Cx,DISABLE);//关闭ACK
+				I2C_NACKPositionConfig(I2Cx,I2C_NACKPosition_Next);
+				I2C_ReadRegister(I2Cx, I2C_Register_SR1);
+				I2C_ReadRegister(I2Cx, I2C_Register_SR2);
+				break;
+			}
+			//其余情况直接清除ADDR
             I2C_ReadRegister(I2Cx, I2C_Register_SR1);
             I2C_ReadRegister(I2Cx, I2C_Register_SR2);
             break;
@@ -364,21 +495,11 @@ int8_t APP_I2C_ReadReg(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,uint8_t RegAddr,uint
             return -5;  // 寻址超时
         }
     }
-    //7. 接收数据
-    // 如果只接收 1 个字节，提前关闭 ACK
+    //8. 接收数据
+    // 只接收1个字节
     if (Size == 1) {
-        I2C_AcknowledgeConfig(I2Cx, DISABLE);
-    }
-
-    for (i = 0; i < Size; i++) {
-        // 如果是最后一个字节，在接收前确保 ACK 已关闭
-        if (i == Size - 1) {
-            I2C_AcknowledgeConfig(I2Cx, DISABLE);
-            I2C_GenerateSTOP(I2Cx, ENABLE);
-        }
-
-        // 等待 RXNE 标志（数据已收到）
-        timeout = 100000;
+		I2C_GenerateSTOP(I2Cx, ENABLE);//设置停止位
+		timeout = 100000;
         while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_RXNE) == RESET) {
             if (--timeout == 0) {
                 I2C_GenerateSTOP(I2Cx, ENABLE);
@@ -386,9 +507,88 @@ int8_t APP_I2C_ReadReg(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,uint8_t RegAddr,uint
                 return -6;  // 接收超时
             }
         }
-        // 读取数据（硬件自动清除 RXNE）
-        pBuffer[i] = I2C_ReceiveData(I2Cx);
+		// 读取数据（硬件自动清除 RXNE）
+        pBuffer[0] = I2C_ReceiveData(I2Cx);
+		
     }
+	//接收2个字节
+	else if(Size == 2)
+	{	
+		//等待BTF置位
+		timeout = 100000;
+		while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_BTF) == RESET) {
+			if (--timeout == 0) {
+				I2C_GenerateSTOP(I2Cx, ENABLE);
+				I2C_AcknowledgeConfig(I2Cx, ENABLE);  // 恢复 ACK
+				return -7;  // BTF置位超时
+			}
+		}
+		//设置STOP
+		I2C_GenerateSTOP(I2Cx,ENABLE);
+		//接收数据
+		for(uint8_t i=0;i<2;i++)
+		{
+			timeout = 100000;
+			while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_RXNE) == RESET) {
+				if (--timeout == 0) {
+					I2C_GenerateSTOP(I2Cx, ENABLE);
+					I2C_AcknowledgeConfig(I2Cx, ENABLE); // 恢复 ACK
+					return -6;  // 接收超时
+				}
+			}
+			// 读取数据（硬件自动清除 RXNE）
+			pBuffer[i] = I2C_ReceiveData(I2Cx);
+		}
+		//恢复NACK的Current
+		I2C_NACKPositionConfig(I2Cx,I2C_NACKPosition_Current);
+	}
+	//接收三个及以上字节
+	else
+	{	
+		for (uint8_t i = 0; i < Size-1; i++) {
+			// 倒数第二个字节前关闭ACK，连续读取DR和移位寄存器(转移到DR)中的数据
+			if (i == Size - 2) {
+				//等待BTF置位
+				timeout = 100000;
+				while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_BTF) == RESET) {
+					if (--timeout == 0) {
+						I2C_GenerateSTOP(I2Cx, ENABLE);
+						I2C_AcknowledgeConfig(I2Cx, ENABLE);  // 恢复 ACK
+						return -7;  						  // BTF置位超时
+					}
+				}
+				//设置NACK
+				I2C_AcknowledgeConfig(I2Cx,DISABLE);
+				I2C_NACKPositionConfig(I2Cx,I2C_NACKPosition_Current);
+				//接收数据
+				for(uint8_t j=i;j<i+2;j++)
+				{	
+					if(j == i+1)
+						I2C_GenerateSTOP(I2Cx,ENABLE);
+					timeout = 100000;
+					while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_RXNE) == RESET) {
+						if (--timeout == 0) {
+							I2C_GenerateSTOP(I2Cx, ENABLE);
+							I2C_AcknowledgeConfig(I2Cx, ENABLE); // 恢复 ACK
+							I2C_NACKPositionConfig(I2Cx,I2C_NACKPosition_Current);//恢复POS
+							return -6;  // 接收超时
+						}
+					}
+					pBuffer[j] = I2C_ReceiveData(I2Cx);
+				}
+				break;
+			}
+			timeout = 100000;
+			while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_RXNE) == RESET) {
+				if (--timeout == 0) {
+					I2C_GenerateSTOP(I2Cx, ENABLE);
+					I2C_AcknowledgeConfig(I2Cx, ENABLE); // 恢复 ACK
+					return -6;  // 接收超时
+				}
+			}
+			pBuffer[i] = I2C_ReceiveData(I2Cx);
+		}
+	}
     I2C_AcknowledgeConfig(I2Cx, ENABLE);  // 恢复 ACK 供下次使用
     return 0;  // 成功
 }

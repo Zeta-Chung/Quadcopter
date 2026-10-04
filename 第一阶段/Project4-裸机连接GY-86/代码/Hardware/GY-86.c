@@ -29,8 +29,7 @@ static void MPU6050_reg_write(uint8_t reg,uint8_t value)
 //@retval 读取到的值
 static uint8_t MPU6050_reg_read(uint8_t reg)
 {
-	APP_I2C_SendData(I2C1,0x68,&reg,1);
-	uint8_t RegValue;
-	APP_I2C_ReceiveData(I2C1,0x68,&RegValue,1);
-	return RegValue;
+	uint8_t regvalue;
+	APP_I2C_ReadReg(I2C1,0x68,reg,&regvalue,1);
+	return regvalue;
 }
