@@ -1,0 +1,21 @@
+# Keil 编译输出
+Objects/
+Listings/
+DebugConfig/
+*.uvguix.*
+*.uvoptx
+*.dep
+*.crf
+*.d
+*.o
+*.axf
+*.htm
+*.lnp
+*.sct
+*.map
+*.lst
+*.build_log.htm
+
+# 其他临时文件
+*.bak
+*.tmp
