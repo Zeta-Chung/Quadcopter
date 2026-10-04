@@ -353,8 +353,8 @@ int8_t APP_I2C_ReceiveData(I2C_TypeDef *I2Cx, uint8_t Addr, uint8_t *pBuffer, ui
 /***/
 //@brief 使用I2C读取从机寄存器数据
 //@param I2Cx - 读取数据的I2C外设
-//@param SlaveAddr - 发送数据的从机地址
-//@param RegAddr - 接收数据的从机地址
+//@param SlaveAddr - 接收数据的从机地址
+//@param RegAddr - 接收数据的寄存器地址
 //@param pBuffer - 接收数据缓冲区指针
 //@param Size - 期望接收的字节数
 //@retval 0  - 接收正常
@@ -563,8 +563,10 @@ int8_t APP_I2C_ReadReg(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,uint8_t RegAddr,uint
 				//接收数据
 				for(uint8_t j=i;j<i+2;j++)
 				{	
+					//在接收最后一个字节前配置STOP
 					if(j == i+1)
 						I2C_GenerateSTOP(I2Cx,ENABLE);
+					//等待RxNE
 					timeout = 100000;
 					while (I2C_GetFlagStatus(I2Cx, I2C_FLAG_RXNE) == RESET) {
 						if (--timeout == 0) {
