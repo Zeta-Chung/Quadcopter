@@ -1,5 +1,5 @@
 #include "I2C.h"
-
+#include <Stdio.h>
 /***/
 //@brief 初始化I2C
 //@param I2Cx - 需要初始化的I2C外设

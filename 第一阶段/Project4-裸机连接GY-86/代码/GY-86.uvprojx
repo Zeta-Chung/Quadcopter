@@ -341,7 +341,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F401xx, USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>.\Start;.\User;.\Hardware;.\System;.\Library</IncludePath>
+              <IncludePath>.\System;.\Start;.\Hardware;.\Library;.\User</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -781,14 +781,34 @@
           <GroupName>Hardware</GroupName>
           <Files>
             <File>
+              <FileName>GY-86.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\GY-86.c</FilePath>
+            </File>
+            <File>
               <FileName>GY-86.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Hardware\GY-86.h</FilePath>
             </File>
             <File>
-              <FileName>GY-86.c</FileName>
+              <FileName>oled.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\GY-86.c</FilePath>
+              <FilePath>.\Hardware\oled.c</FilePath>
+            </File>
+            <File>
+              <FileName>oled.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\oled.h</FilePath>
+            </File>
+            <File>
+              <FileName>oled_font.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\oled_font.c</FilePath>
+            </File>
+            <File>
+              <FileName>oled_font.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\oled_font.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -796,14 +816,14 @@
           <GroupName>System</GroupName>
           <Files>
             <File>
-              <FileName>I2C.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\System\I2C.c</FilePath>
+              <FileName>SI2C.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\System\SI2C.h</FilePath>
             </File>
             <File>
-              <FileName>I2C.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\System\I2C.h</FilePath>
+              <FileName>SI2C.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\System\SI2C.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -18,7 +18,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include "GY-86.h"
+#include "oled.h"
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -31,6 +32,7 @@ static volatile uint32_t uwTimingDelay;
 /* 对外接口 Delay() / TimingDelay_Decrement() 已声明在 main.h 中 */
 
 /* Private functions ---------------------------------------------------------*/
+static void APP_OLED_Init(void);
 
 /**
   * @brief  程序入口
@@ -41,10 +43,20 @@ int main(void)
 {
     /* 配置 SysTick 每 1ms 产生一次中断（返回 0 表示成功），为 Delay() 提供时基 */
     SysTick_Config(SystemCoreClock / 1000U);
-
+	//初始化GY-86和OLED
+	APP_GY86_Init();
+	OLED_Init();
+	
+	OLED_ShowString(1,1,"gx:");
+	OLED_ShowString(2,1,"gy:");
+	OLED_ShowString(3,1,"gz:");
+	OLED_ShowString(1,9,"ax:");
+	OLED_ShowString(2,9,"ay:");
+	OLED_ShowString(3,9,"az:");
+	
     while (1)
     {
-
+		
     }
 }
 
@@ -74,6 +86,7 @@ void TimingDelay_Decrement(void)
         uwTimingDelay--;
     }
 }
+
 
 #ifdef USE_FULL_ASSERT
 /**
