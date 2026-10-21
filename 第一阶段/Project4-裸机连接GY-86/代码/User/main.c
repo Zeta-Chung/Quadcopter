@@ -32,7 +32,6 @@ static volatile uint32_t uwTimingDelay;
 /* 对外接口 Delay() / TimingDelay_Decrement() 已声明在 main.h 中 */
 
 /* Private functions ---------------------------------------------------------*/
-static void APP_OLED_Init(void);
 
 /**
   * @brief  程序入口

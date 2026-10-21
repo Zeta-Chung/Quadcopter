@@ -9,7 +9,7 @@ static float ax,ay,az,gx,gy,gz,temperature;
 static float Bx,By,Bz;
 static MSdata msdata;
 
-SI2C_TypeDef hi2c_gy86 = {GPIOB,GPIO_Pin_10,GPIOB,GPIO_Pin_3};
+SI2C_TypeDef hi2c_gy86 = {GPIOB,GPIO_Pin_8,GPIOB,GPIO_Pin_9};
 
 /***/
 //@brief 初始化GY-86的三个设备
