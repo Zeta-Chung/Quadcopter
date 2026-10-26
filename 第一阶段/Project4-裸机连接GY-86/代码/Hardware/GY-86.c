@@ -1,5 +1,8 @@
 #include "GY-86.h"
 
+/* 当前模块的 MS5611 在 7 位地址 0x77 应答。 */
+#define MS5611_ADDR 0x77
+
 static void MPU6050_Reg_Write(uint8_t reg,uint8_t value);
 static uint8_t MPU6050_Reg_Read(uint8_t reg);
 static void HMC5883L_Reg_Write(uint8_t reg,uint8_t value);
@@ -39,31 +42,31 @@ void APP_GY86_Init(void)
 	const uint8_t C4READ = C3READ + 2;
 	const uint8_t C5READ = C4READ + 2;
 	const uint8_t C6READ = C5READ + 2;
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&MS5611_reset,1);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&MS5611_reset,1);
 	Delay(5);//等待复位完成
 	//读取C1
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&C1READ,1);
-	SI2C_ReceiveBuffer(&hi2c_gy86,0x76,readbuffer,2);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&C1READ,1);
+	SI2C_ReceiveBuffer(&hi2c_gy86,MS5611_ADDR,readbuffer,2);
 	msdata.c1 = (uint16_t)((readbuffer[0]<<8)|readbuffer[1]);
 	//读取C2
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&C2READ,1);
-	SI2C_ReceiveBuffer(&hi2c_gy86,0x76,readbuffer,2);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&C2READ,1);
+	SI2C_ReceiveBuffer(&hi2c_gy86,MS5611_ADDR,readbuffer,2);
 	msdata.c2 = (uint16_t)((readbuffer[0]<<8)|readbuffer[1]);
 	//读取C3
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&C3READ,1);
-	SI2C_ReceiveBuffer(&hi2c_gy86,0x76,readbuffer,2);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&C3READ,1);
+	SI2C_ReceiveBuffer(&hi2c_gy86,MS5611_ADDR,readbuffer,2);
 	msdata.c3 = (uint16_t)((readbuffer[0]<<8)|readbuffer[1]);
 	//读取C4
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&C4READ,1);
-	SI2C_ReceiveBuffer(&hi2c_gy86,0x76,readbuffer,2);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&C4READ,1);
+	SI2C_ReceiveBuffer(&hi2c_gy86,MS5611_ADDR,readbuffer,2);
 	msdata.c4 = (uint16_t)((readbuffer[0]<<8)|readbuffer[1]);
 	//读取C5
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&C5READ,1);
-	SI2C_ReceiveBuffer(&hi2c_gy86,0x76,readbuffer,2);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&C5READ,1);
+	SI2C_ReceiveBuffer(&hi2c_gy86,MS5611_ADDR,readbuffer,2);
 	msdata.c5 = (uint16_t)((readbuffer[0]<<8)|readbuffer[1]);
 	//读取C6
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&C6READ,1);
-	SI2C_ReceiveBuffer(&hi2c_gy86,0x76,readbuffer,2);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&C6READ,1);
+	SI2C_ReceiveBuffer(&hi2c_gy86,MS5611_ADDR,readbuffer,2);
 	msdata.c6 = (uint16_t)((readbuffer[0]<<8)|readbuffer[1]);
 }
 
@@ -99,7 +102,6 @@ uint8_t APP_MPU6050_Update(void)
 	return 0;
 }
 
-
 /***/
 //@brief 更新HMC5883L的值 
 /***/
@@ -130,16 +132,16 @@ void APP_MS5611_Update(void){
 	const uint8_t tREAD = 0x58;//更新温度命令
 	const uint8_t ADREAD = 0x00;//ADC读取命令
 	//读取原始气压
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&pREAD,1);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&pREAD,1);
 	Delay(11);
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&ADREAD,1);
-	SI2C_ReceiveBuffer(&hi2c_gy86,0x76,readbuffer,3);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&ADREAD,1);
+	SI2C_ReceiveBuffer(&hi2c_gy86,MS5611_ADDR,readbuffer,3);
 	msdata.d1 = (uint32_t)((readbuffer[0]<<16)|(readbuffer[1]<<8)|readbuffer[2]);
 	//读取原始温度
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&tREAD,1);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&tREAD,1);
 	Delay(11);
-	SI2C_SendBuffer(&hi2c_gy86,0x76,&ADREAD,1);
-	SI2C_ReceiveBuffer(&hi2c_gy86,0x76,readbuffer,3);
+	SI2C_SendBuffer(&hi2c_gy86,MS5611_ADDR,&ADREAD,1);
+	SI2C_ReceiveBuffer(&hi2c_gy86,MS5611_ADDR,readbuffer,3);
 	msdata.d2 = (uint32_t)((readbuffer[0]<<16)|(readbuffer[1]<<8)|readbuffer[2]);
 	
 	//一阶补偿公式
@@ -197,16 +199,15 @@ HMCdata APP_HMC5883L_Print(void)
 	return data;
 }
 /***/
-//@brief 打印MS5611的测量值，保留两位小数
+//@brief 更新并获取MS5611的气压测量值
 //@retval 气压值，单位为mbar
 /***/
 float APP_MS5611_Print(void)
 {
-	int32_t p = msdata.p;
 	APP_MS5611_Update();
-	float p_out = (float)p/100;
-	return p_out;
+	return (float)msdata.p / 100.0f;
 }
+
 
 /***/
 //@brief 向MPU6050中写入单字节数据

@@ -30,8 +30,20 @@ static volatile uint32_t uwTimingDelay;
 
 /* Private function prototypes -----------------------------------------------*/
 /* 对外接口 Delay() / TimingDelay_Decrement() 已声明在 main.h 中 */
+static int32_t APP_ToHundredths(float value);
 
 /* Private functions ---------------------------------------------------------*/
+
+/**
+  * @brief  将测量值转换为百分位整数，供 OLED 显示两位小数
+  * @param  value 原始单位的测量值（角速度为 °/s，气压为 mbar）
+  * @retval 四舍五入后的测量值，单位为原始单位的 0.01
+  */
+static int32_t APP_ToHundredths(float value)
+{
+    float scaled = value * 100.0f;
+    return (int32_t)(scaled >= 0.0f ? scaled + 0.5f : scaled - 0.5f);
+}
 
 /**
   * @brief  程序入口
@@ -40,6 +52,8 @@ static volatile uint32_t uwTimingDelay;
   */
 int main(void)
 {
+    MPUdata mpu;
+
     /* 配置 SysTick 每 1ms 产生一次中断（返回 0 表示成功），为 Delay() 提供时基 */
     SysTick_Config(SystemCoreClock / 1000U);
 	//初始化GY-86和OLED
@@ -49,13 +63,18 @@ int main(void)
 	OLED_ShowString(1,1,"gx:");
 	OLED_ShowString(2,1,"gy:");
 	OLED_ShowString(3,1,"gz:");
-	OLED_ShowString(1,9,"ax:");
-	OLED_ShowString(2,9,"ay:");
-	OLED_ShowString(3,9,"az:");
-	
+	OLED_ShowString(4,1,"P:");
+	OLED_ShowString(4,11,"mbar");
+
     while (1)
     {
-		
+		mpu = APP_MPU6050_Print();
+		OLED_ShowFixed2(1,4,APP_ToHundredths(mpu.gx_out),4);
+		OLED_ShowFixed2(2,4,APP_ToHundredths(mpu.gy_out),4);
+		OLED_ShowFixed2(3,4,APP_ToHundredths(mpu.gz_out),4);
+
+		OLED_ShowFixed2(4, 3, APP_ToHundredths(APP_MS5611_Print()), 4);
+		Delay(100);
     }
 }
 

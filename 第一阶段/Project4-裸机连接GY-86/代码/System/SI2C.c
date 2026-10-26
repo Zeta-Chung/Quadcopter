@@ -149,6 +149,7 @@ void SI2C_SendStop(SI2C_TypeDef *hi2c)
 uint8_t SI2C_SendByte(SI2C_TypeDef *hi2c, uint8_t byte)
 {
     uint8_t i;
+    uint8_t ack;
 
     for (i = 0; i < 8; i++)
     {
@@ -173,7 +174,9 @@ uint8_t SI2C_SendByte(SI2C_TypeDef *hi2c, uint8_t byte)
     for(int i=0;i<84;i++);
     SI2C_SCL_Write(hi2c, 1);
     for(int i=0;i<84;i++);
-    return SI2C_SDA_Read(hi2c);                // 读取ACK或NACK
+    ack = SI2C_SDA_Read(hi2c);                 // 在第9个时钟的高电平期间采样ACK
+    SI2C_SCL_Write(hi2c, 0);                   // 结束ACK时钟，让从机准备下一字节的首位
+    return ack;
 }
 
 /**

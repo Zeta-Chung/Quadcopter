@@ -36,4 +36,8 @@ typedef struct{
 void APP_GY86_Init(void);
 uint8_t APP_MPU6050_Update(void);
 MPUdata APP_MPU6050_Print(void);
+uint8_t APP_HMC5883L_Update(void);
+HMCdata APP_HMC5883L_Print(void);
+void APP_MS5611_Update(void);
+float APP_MS5611_Print(void);
 #endif

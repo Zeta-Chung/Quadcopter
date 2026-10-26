@@ -216,6 +216,37 @@ void OLED_ShowSignedNum(uint8_t Line, uint8_t Column, int32_t Number, uint8_t Le
 }
 
 /**
+ * @brief  显示带两位小数的定点数
+ * @param  Line 行号，范围 1~4
+ * @param  Column 起始列，范围 1~16
+ * @param  Value100 实际数值乘以 100 后的整数，例如 100009 表示 1000.09
+ * @param  IntegerDigits 整数部分的固定显示位数，不足时补 0
+ */
+void OLED_ShowFixed2(uint8_t Line, uint8_t Column, int32_t Value100, uint8_t IntegerDigits)
+{
+    uint32_t magnitude;
+
+    /* 防止字符超出 4 行、16 列的显示区域。 */
+    if (Line < 1 || Line > 4 || Column < 1 ||
+        IntegerDigits < 1 || IntegerDigits > 10 ||
+        (uint16_t)Column + IntegerDigits + 3 > 16)
+    {
+        return;
+    }
+
+    /* 单独显示符号；先转为 int64_t 可安全处理 INT32_MIN。 */
+    magnitude = Value100 < 0
+              ? (uint32_t)(-(int64_t)Value100)
+              : (uint32_t)Value100;
+    OLED_ShowChar(Line, Column, Value100 < 0 ? '-' : ' ');
+
+    /* 整数部分固定宽度，位数不足时补 0；小数部分固定两位。 */
+    OLED_ShowNum(Line, Column + 1, magnitude / 100, IntegerDigits);
+    OLED_ShowChar(Line, Column + 1 + IntegerDigits, '.');
+    OLED_ShowNum(Line, Column + 2 + IntegerDigits, magnitude % 100, 2);
+}
+
+/**
   * @brief  OLED显示数字（十六进制，正数）
   * @param  Line 起始行位置，范围：1~4
   * @param  Column 起始列位置，范围：1~16
