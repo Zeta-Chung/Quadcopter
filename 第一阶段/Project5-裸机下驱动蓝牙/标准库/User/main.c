@@ -22,6 +22,7 @@
 #include "Bluetooth.h"
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+USART_TypeDef *g_printf_usart = USART1;
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* 毫秒倒计时：由 SysTick 中断每 1ms 减 1，主循环轮询其值。
@@ -32,7 +33,22 @@ static volatile uint32_t uwTimingDelay;
 /* 对外接口 Delay() / TimingDelay_Decrement() 已声明在 main.h 中 */
 
 /* Private functions ---------------------------------------------------------*/
-static void APP_OLED_Init(void);
+void USART_Printf_Set(USART_TypeDef* USARTx) 
+{
+    g_printf_usart = USARTx;
+}
+
+
+int fputc(int ch, FILE *f) 
+{
+    // 等待发送缓冲区为空
+    while (USART_GetFlagStatus(g_printf_usart, USART_FLAG_TXE) == RESET);
+    USART_SendData(g_printf_usart, (uint8_t)ch);
+    // 等待发送完成
+    while (USART_GetFlagStatus(g_printf_usart, USART_FLAG_TC) == RESET);
+    return ch;
+}
+
 
 /**
   * @brief  程序入口
@@ -43,10 +59,11 @@ int main(void)
 {
     /* 配置 SysTick 每 1ms 产生一次中断（返回 0 表示成功），为 Delay() 提供时基 */
     SysTick_Config(SystemCoreClock / 1000U);
-	
+	APP_BlueTooth_Init();
     while (1)
     {
-		
+		printf("123");
+		Delay(1000);
     }
 }
 

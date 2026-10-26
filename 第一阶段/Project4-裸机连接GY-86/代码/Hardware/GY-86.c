@@ -1,7 +1,6 @@
 #include "GY-86.h"
 
-/* 当前模块的 MS5611 在 7 位地址 0x77 应答。 */
-#define MS5611_ADDR 0x77
+#define MS5611_ADDR 0x77  //当前模块的 MS5611的七位地址是0x77
 
 static void MPU6050_Reg_Write(uint8_t reg,uint8_t value);
 static uint8_t MPU6050_Reg_Read(uint8_t reg);

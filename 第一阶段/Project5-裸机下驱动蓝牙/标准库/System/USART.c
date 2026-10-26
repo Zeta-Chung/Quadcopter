@@ -91,7 +91,7 @@ void APP_USART_NVICInit(USART_TypeDef *USARTx){
 //@param USARTx - 执行的USART外设
 //@param data - 需要写入的内容
 /////
-void USART_WriteByte(USART_TypeDef *USARTx, uint8_t data)
+void APP_USART_WriteByte(USART_TypeDef *USARTx, uint8_t data)
 {
     while (USART_GetFlagStatus(USARTx, USART_FLAG_TXE) == RESET);
     USART_SendData(USARTx, data);
@@ -102,17 +102,17 @@ void USART_WriteByte(USART_TypeDef *USARTx, uint8_t data)
 //@param USARTx - 执行的USART外设
 //@param str - 需要写入的字符串
 /////
-void USART_WriteString(USART_TypeDef *USARTx,uint8_t *str)
+void APP_USART_WriteString(USART_TypeDef *USARTx,uint8_t *str)
 {
 	while(*str != '\0'){
-		USART_WriteByte(USARTx,*str++);
+		APP_USART_WriteByte(USARTx,*str++);
 	}
 }
 /////
 //@brief USART读单字节
 //@param USARTx - 执行的USART外设
 /////
-uint8_t USART_ReadByte(USART_TypeDef *USARTx){
+uint8_t APP_USART_ReadByte(USART_TypeDef *USARTx){
 	while(USART_GetFlagStatus(USARTx,USART_FLAG_RXNE)==RESET);
 	return (uint8_t)USART_ReceiveData(USARTx);
 }
@@ -123,7 +123,7 @@ uint8_t USART_ReadByte(USART_TypeDef *USARTx){
 //@retval 0 - 读取到有效信息
 //@retval 1 - 读取信息为空 
 /////
-uint8_t USART_GetCommand(uint8_t *cmd, uint8_t size)
+uint8_t APP_USART_GetCommand(uint8_t *cmd, uint8_t size)
 {
 	while(usart_rx_write != usart_rx_read)
 	{
