@@ -19,3 +19,6 @@ DebugConfig/
 # 其他临时文件
 *.bak
 *.tmp
+
+# agent设定文件
+AGENTS.md
