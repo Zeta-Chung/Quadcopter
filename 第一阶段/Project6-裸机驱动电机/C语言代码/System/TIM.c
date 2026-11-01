@@ -1,8 +1,8 @@
 #include "TIM.h"
 /***/
-//@brief 初始化TIM2四通道PWM输出（用于连接电机）
+//@brief 初始化TIM2_CH1的50Hz PWM输出（PA0，单电机测试）
 /***/
-void APP_TIM2_PWM_Init(void){
+void APP_TIM2_PWMOutput_Init(void){
 	//初始化GPIOA和TIM2时钟
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
@@ -26,7 +26,6 @@ void APP_TIM2_PWM_Init(void){
 		GPIOA->PUPDR &= ~(3U << (i * 2));
 		GPIOA->PUPDR |= (1U << (i * 2));
 	}
-	
 	//设置AF1复用映射
 	for(int i=0;i<4;i++){
 		GPIOA->AFR[0] &= ~(0xFU << (i*4));
@@ -40,24 +39,15 @@ void APP_TIM2_PWM_Init(void){
 	TIM2->CNT = 0;
 	//设置PWM初始脉宽为1000μs
 	TIM2->CCR1 = 1000;
-	TIM2->CCR2 = 1000;
-	TIM2->CCR3 = 1000;
-	TIM2->CCR4 = 1000;
 	
 	//--配置PWM1模式--//
-	//配置通道1和通道2
-	TIM2->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_CC2S);//配置通道输出
-	TIM2->CCMR1 &= ~(TIM_CCMR1_OC1M | TIM_CCMR1_OC2M);//清零模式位
-	TIM2->CCMR1 |= (6U << 4 | 6U << 12);//配置模式位
-	TIM2->CCMR1 |= (TIM_CCMR1_OC1PE | TIM_CCMR1_OC2PE);//配置预加载
-	//配置通道3和通道4
-	TIM2->CCMR2 &= ~(TIM_CCMR2_CC3S | TIM_CCMR2_CC4S);
-	TIM2->CCMR2 &= ~(TIM_CCMR2_OC3M | TIM_CCMR2_OC4M);
-	TIM2->CCMR2 |= (6U << 4 | 6U << 12);
-	TIM2->CCMR2 |= (TIM_CCMR2_OC3PE | TIM_CCMR2_OC4PE);
+	TIM2->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_OC1M);
+	TIM2->CCMR1 |= (6U << 4) | TIM_CCMR1_OC1PE;
 	//使能输出模式
-	TIM2->CCER &= ~(TIM_CCER_CC1NP | TIM_CCER_CC2NP | TIM_CCER_CC3NP | TIM_CCER_CC4NP);//清零CCxNP位
-	TIM2->CCER |= (TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E);//使能四通道输出
+	TIM2->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC1NP |
+	                TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E);
+	TIM2->EGR = TIM_EGR_UG; //立即装载预分频和预装载值
+	TIM2->CCER |= TIM_CCER_CC1E;
 	
 	//--使能TIM2--//
 	TIM2->CR1 |= TIM_CR1_CEN;
@@ -97,10 +87,46 @@ void APP_TIM1_PWMInput_Init(void){
 	TIM1->CCMR1 &= ~(TIM_CCMR1_CC1S);
 	TIM1->CCMR1 |= TIM_CCMR1_CC1S_0;
 	//设置滤波
-	TIM1->CCMR1 &= ~(0xF << 4);
-	TIM1->CCMR1 |= (0xF << 4);
-	//设置预分频
+	TIM1->CCMR1 &= ~(TIM_CCMR1_IC1F);
+	TIM1->CCMR1 |= (TIM_CCMR1_IC1F);
+	//设置预分频系数为1
+	TIM1->CCMR1 &= ~(TIM_CCMR1_IC1PSC);
+	//设置上升沿触发
+	TIM1->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC1NP);
+	//---配置通道2（捕获下降沿）---//
+	//设置输入，映射到通道1
+	TIM1->CCMR1 &= ~(TIM_CCMR1_CC2S);
+	TIM1->CCMR1 |= TIM_CCMR1_CC2S_1;
+	//设置滤波
+	TIM1->CCMR1 &= ~(TIM_CCMR1_IC2F);
+	TIM1->CCMR1 |= TIM_CCMR1_IC2F;
+	//设置预分频系数为1
+	TIM1->CCMR1 &= ~(TIM_CCMR1_IC2PSC);
+	//设置下降沿触发
+	TIM1->CCER &= ~(TIM_CCER_CC2NP);
+	TIM1->CCER |= TIM_CCER_CC2P;
 	
+	//---使能捕获通道---//
+	TIM1->CCER |= TIM_CCER_CC1E | TIM_CCER_CC2E;
 	
+	//---配置从模式控制器（捕获信号）---//
+	//设置从模式为复位模式
+	TIM1->SMCR &= ~(TIM_SMCR_SMS);
+	TIM1->SMCR |= TIM_SMCR_SMS_2;
+	//设置TRGI为TI1FP1
+	TIM1->SMCR &= ~(TIM_SMCR_TS);
+	TIM1->SMCR |= (TIM_SMCR_TS_0 | TIM_SMCR_TS_2);
+	
+	//---配置定时器中断---//
+	//只使能通道1捕获中断；通道2捕获值由中断读取CCR2
+	TIM1->EGR = TIM_EGR_UG; //立即装载预分频值
+	TIM1->SR = 0U;
+	TIM1->DIER |= TIM_DIER_CC1IE;
+	//NVIC配置
+	NVIC_EnableIRQ(TIM1_CC_IRQn);
+	
+	//---启动定时器--//
+	//使能定时器计数
+	TIM1->CR1 |= TIM_CR1_CEN;
 }
 

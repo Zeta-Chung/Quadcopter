@@ -32,10 +32,12 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-//串口中断函数相关的定义
-volatile uint8_t usart_rx_ring[64];//存储输入数据的环形缓冲区
-volatile uint8_t usart_rx_write = 0;//写数据的索引
-volatile uint8_t usart_rx_read = 0;//读数据的索引
+//---定时器PWM输入捕获有关的定义---//
+volatile uint32_t g_pwm_width = 0; //高电平宽度
+volatile uint32_t g_pwm_period = 0;//完整周期
+volatile uint32_t g_pwm_last_ms = 0; //最近一次完整捕获的时刻
+volatile uint32_t g_ms_ticks = 0; //SysTick 毫秒计数
+volatile uint8_t g_pwm_seen = 0; //至少捕获过一次完整 PWM 周期
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -139,6 +141,7 @@ void PendSV_Handler(void)
   */
 void SysTick_Handler(void)
 {
+  g_ms_ticks++;
   TimingDelay_Decrement();
 }
 
@@ -161,16 +164,16 @@ void SysTick_Handler(void)
   @brief 
   @param 
   */
-void USART1_IRQHandler(void){
-	if(USART_GetITStatus(USART1,USART_IT_RXNE)){
-		uint8_t rx = USART_ReceiveData(USART1);
-		uint16_t next = (uint16_t)((usart_rx_write + 1) % 64);
-		if(next != usart_rx_read)
-		{
-			usart_rx_ring[usart_rx_write] = rx;
-			usart_rx_write = next;
-		}
-	}
+void TIM1_CC_IRQHandler(void)
+{
+    if ((TIM1->SR & TIM_SR_CC1IF) != 0U)
+    {
+        g_pwm_period = TIM1->CCR1;  
+        g_pwm_width  = TIM1->CCR2;  
+        g_pwm_last_ms = g_ms_ticks;
+        g_pwm_seen = 1U;
+        TIM1->SR &= ~TIM_SR_CC1IF;
+    }
 }
 
 /**

@@ -4,13 +4,13 @@
   * @brief   STM32F401 工程模板主程序
   * @note    复制本模板做新项目时的注意事项：
   *          1. 时钟不需要在 main() 里配置：启动文件 startup_stm32f401xx.s 复位后
-  *             先调用 SystemInit()，本模板按 STM32F401xx 配置为 HSE 25MHz + PLL，
+  *             先调用 SystemInit()，本工程使用 ST-LINK 8MHz MCO 作为 HSE 输入并经 PLL 倍频，
   *             系统主频 SystemCoreClock = 84MHz。
   *          2. 本文件只保留一个可直接使用的毫秒延时 Delay()；外设驱动请放到
   *             System / Hardware 分组中，不要写在 main.c 里，方便整包复用。
-  *          3. 若你的板子晶振不是 25MHz（例如 Nucleo 从 ST-Link 引出 8MHz MCO），
-  *             需同步修改 Start/stm32f4xx.h 的 HSE_VALUE 和 Start/system_stm32f4xx.c 的
-  *             PLL_M，否则 SystemCoreClock 与实际主频不符，Delay() 的时间会成比例偏差。
+  *          3. 当前按 NUCLEO-F401RE MB1136 C-04 的原厂时钟接法配置：8MHz HSE 旁路。
+  *             更换板卡或时钟源时，需同步检查 HSE_VALUE、PLL_M 与 HSEBYP，
+  *             否则 Delay() 和定时器 PWM 脉宽都会失准。
   *          4. 需要检查库函数参数时，在 User/stm32f4xx_conf.h 里打开
   *             USE_FULL_ASSERT，文件末尾的 assert_failed() 会自动参与编译。
   ******************************************************************************
@@ -18,6 +18,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "motor.h"
+#include "receiver.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -39,12 +41,17 @@ static volatile uint32_t uwTimingDelay;
   */
 int main(void)
 {
+    uint16_t throttle_us = 1000U;
+    uint8_t throttle_valid;
+
     /* 配置 SysTick 每 1ms 产生一次中断（返回 0 表示成功），为 Delay() 提供时基 */
     SysTick_Config(SystemCoreClock / 1000U);
-	
+    APP_Motor_Init(); /* 先在 PA0 输出最低油门，再启动接收机输入捕获 */
+    APP_Receiver_Init();
+
     while (1)
     {
-		
+
     }
 }
 

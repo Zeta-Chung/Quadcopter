@@ -455,6 +455,16 @@
               <FileType>5</FileType>
               <FilePath>.\Hardware\motor.h</FilePath>
             </File>
+            <File>
+              <FileName>receiver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\hardware\receiver.c</FilePath>
+            </File>
+            <File>
+              <FileName>receiver.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\hardware\receiver.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

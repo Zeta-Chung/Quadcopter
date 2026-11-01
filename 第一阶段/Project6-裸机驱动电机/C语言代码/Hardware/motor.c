@@ -1,10 +1,12 @@
 #include "motor.h"
+
 /***/
 //@brief 设置舵机初始化
 /***/
 void APP_Motor_Init(void){
-	APP_TIM2_PWM_Init();
+	APP_TIM2_PWMOutput_Init();
 }
+
 /***/
 //@brief 向电机写入新的脉宽
 //@param id - 需要写入脉宽的PWM通道

@@ -32,10 +32,8 @@
   *    function will do nothing and HSI still used as system clock source. User can 
   *    add some code to deal with this issue inside the SetSysClock() function.
   *
-  * 4. The default value of HSE crystal is set to 25MHz, refer to "HSE_VALUE" define
-  *    in "stm32f4xx.h" file. When HSE is used as system clock source, directly or
-  *    through PLL, and you are using different crystal you have to adapt the HSE
-  *    value to your own configuration.
+  * 4. Set HSE_VALUE in stm32f4xx.h to the actual HSE input clock frequency.
+  *    This applies whether HSE is used directly or through the PLL.
   *
   * 5. This file configures the system clock as follows:
   *=============================================================================
@@ -148,9 +146,9 @@
   *-----------------------------------------------------------------------------
   *        APB2 Prescaler                         | 1
   *-----------------------------------------------------------------------------
-  *        HSE Frequency(Hz)                      | 25000000
+  *        HSE Frequency(Hz)                      | 8000000
   *-----------------------------------------------------------------------------
-  *        PLL_M                                  | 25
+  *        PLL_M                                  | 8
   *-----------------------------------------------------------------------------
   *        PLL_N                                  | 336
   *-----------------------------------------------------------------------------
@@ -361,7 +359,7 @@
 /************************* PLL Parameters *************************************/
 #if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F469_479xx)
  /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
- #define PLL_M      25
+ #define PLL_M      8
 #elif defined(STM32F412xG) || defined(STM32F413_423xx) || defined (STM32F446xx)
  #define PLL_M      8
 #elif defined (STM32F410xx) || defined (STM32F411xE)
@@ -539,10 +537,9 @@ void SystemInit(void)
   *             16 MHz) but the real value may vary depending on the variations
   *             in voltage and temperature.   
   *    
-  *         (**) HSE_VALUE is a constant defined in stm32f4xx.h file (default value
-  *              25 MHz), user has to ensure that HSE_VALUE is same as the real
-  *              frequency of the crystal used. Otherwise, this function may
-  *              have wrong result.
+  *         (**) HSE_VALUE is defined in stm32f4xx.h. It must match the actual
+  *              HSE input clock frequency used by the MCU; otherwise this
+  *              function may return an incorrect result.
   *                
   *         - The result of this function could be not correct when using fractional
   *           value for HSE crystal.
@@ -652,8 +649,9 @@ static void SetSysClock(void)
 /******************************************************************************/
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
   
-  /* Enable HSE */
-  RCC->CR |= ((uint32_t)RCC_CR_HSEON);
+  /* Use the 8 MHz ST-LINK MCO input in HSE bypass mode. */
+  RCC->CR |= RCC_CR_HSEBYP;
+  RCC->CR |= RCC_CR_HSEON;
  
   /* Wait till HSE is ready and if Time out is reached exit */
   do
