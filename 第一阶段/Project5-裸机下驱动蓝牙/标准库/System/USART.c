@@ -59,7 +59,7 @@ void APP_USART_Init(USART_TypeDef* USARTx){
 	}
 	
 	USART_InitTypeDef US;
-	US.USART_BaudRate = 115200;
+	US.USART_BaudRate = 9600;
 	US.USART_StopBits = USART_StopBits_1;
 	US.USART_Mode = USART_Mode_Rx|USART_Mode_Tx;
 	US.USART_Parity = USART_Parity_No;

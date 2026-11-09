@@ -62,7 +62,7 @@ int main(void)
 	APP_BlueTooth_Init();
     while (1)
     {
-		printf("123");
+		printf("123\r\n");
 		Delay(1000);
     }
 }
